@@ -1,0 +1,17 @@
+{
+  "name": "North Star \u2014 Personal Operating System",
+  "short_name": "North Star",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f3eb",
+  "theme_color": "#123e48",
+  "description": "A calm personal operating system for meaningful priorities and daily reflection.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
