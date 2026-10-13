@@ -86,15 +86,33 @@ const habits=["Baba's meditation","Isha Hatha Yoga / kriya","Dr Joe Dispenza med
 const defaultHabitDescriptions=['Flexible duration; consistency without guilt','Flexible duration; consistency without guilt','Flexible duration; consistency without guilt','Care for your energy and body'];
 const today=()=>new Date().toLocaleDateString('en-CA');
 function fresh(){return {vision:defaultVision,habits,goals:seedGoals,activePrimary:null,activeSecondary:null,projects:[],daily:{},reflections:{},reviews:{weekly:{},monthly:{},quarterly:{}},ideas:[],settings:{capacity:2,lastBackup:null},habitDescriptions:[...defaultHabitDescriptions]}}
-let state;try{state=JSON.parse(localStorage.getItem(KEY))||fresh()}catch{state=fresh()}
-if(!Array.isArray(state.habitDescriptions)) state.habitDescriptions=[...defaultHabitDescriptions];
-if(!Array.isArray(state.ideas)) state.ideas=[];
-if(!Array.isArray(state.habits)) state.habits=[...habits];
-if(!Array.isArray(state.goals)) state.goals=[...seedGoals];
-if(!state.daily) state.daily={};
-if(!state.reflections) state.reflections={};
-if(!state.reviews) state.reviews={weekly:{},monthly:{},quarterly:{}};
-if(!state.settings) state.settings={capacity:2,lastBackup:null};
+let state;
+try {
+  state = JSON.parse(localStorage.getItem(KEY)) || fresh();
+} catch {
+  state = fresh();
+}
+/* Defensive migration: older saved data may lack fields or contain the wrong shape. */
+if (!state || typeof state !== 'object' || Array.isArray(state)) state = fresh();
+if (!Array.isArray(state.habitDescriptions)) state.habitDescriptions = [...defaultHabitDescriptions];
+if (!Array.isArray(state.ideas)) state.ideas = [];
+if (!Array.isArray(state.habits)) state.habits = [...habits];
+if (!Array.isArray(state.goals)) state.goals = [...seedGoals];
+if (!Array.isArray(state.projects)) state.projects = [];
+if (!state.daily || typeof state.daily !== 'object' || Array.isArray(state.daily)) state.daily = {};
+if (!state.reflections || typeof state.reflections !== 'object' || Array.isArray(state.reflections)) state.reflections = {};
+if (!state.reviews || typeof state.reviews !== 'object') state.reviews = {};
+if (!state.reviews.weekly || typeof state.reviews.weekly !== 'object') state.reviews.weekly = {};
+if (!state.reviews.monthly || typeof state.reviews.monthly !== 'object') state.reviews.monthly = {};
+if (!state.reviews.quarterly || typeof state.reviews.quarterly !== 'object') state.reviews.quarterly = {};
+if (!state.settings || typeof state.settings !== 'object') state.settings = {capacity:2,lastBackup:null};
+if (!Array.isArray(state.goals)) state.goals = [];
+for (const day of Object.values(state.daily)) {
+  if (!day || typeof day !== 'object') continue;
+  if (!day.habits || typeof day.habits !== 'object') day.habits = {};
+  if (!day.learning || typeof day.learning !== 'object') day.learning = {obstacle:'',resource:'',application:''};
+}
+
 function persist(){localStorage.setItem(KEY,JSON.stringify(state));}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function id(){return Math.random().toString(36).slice(2,10)}
@@ -107,7 +125,7 @@ function go(p){page=p;renderNav();render()}
 function header(title,sub=''){return `<div class="sectionhead"><div><h2>${title}</h2>${sub?`<div class="muted small">${sub}</div>`:''}</div></div>`}
 function card(content){return `<section class="card">${content}</section>`}
 function button(label,fn,cls='btn'){return `<button class="${cls}" onclick="${fn}">${label}</button>`}
-function getDay(){if(!state.daily[today()])state.daily[today()]={habits:{},oneThing:'',oneDone:false,learning:{obstacle:'',resource:'',application:''},note:''};return state.daily[today()]}
+function getDay(){if(!state.daily[today()]||typeof state.daily[today()]!=='object')state.daily[today()]={habits:{},oneThing:'',oneDone:false,learning:{obstacle:'',resource:'',application:''},note:''};const d=state.daily[today()];if(!d.habits||typeof d.habits!=='object')d.habits={};if(!d.learning||typeof d.learning!=='object')d.learning={obstacle:'',resource:'',application:''};return d}
 function activeGoals(){return [state.activePrimary,state.activeSecondary].filter(Boolean).map(x=>state.goals.find(g=>g.id===x)).filter(Boolean)}
 function render(){document.getElementById('todayLabel').textContent=dateNice();const root=document.getElementById('main');({Today:renderToday,'Goals & Priorities':renderGoals,'12-Week Focus':renderFocus,'Evening Reflection':renderReflection,Reviews:renderReviews,'Idea Garden':renderIdeas,'Settings & Backup':renderSettings}[page]||renderToday)(root)}
 function renderToday(root){
@@ -170,7 +188,7 @@ function reviewForm(){let d=today().slice(0,7);if(reviewType==='weekly')d=today(
 function saveReview(n){const d=document.getElementById('reviewKey').value;state.reviews[reviewType][d]={answers:Array.from({length:n},(_,i)=>document.getElementById('review'+i).value),updated:new Date().toISOString()};persist();render();toast('Review saved')}
 function loadReview(d){const e=state.reviews[reviewType][d];if(!e)return;const n=reviewQuestions().length;document.getElementById('reviewKey').value=d;for(let i=0;i<n;i++){let el=document.getElementById('review'+i);if(el)el.value=e.answers[i]||''}}
 function renderIdeas(root){
- const list=[...state.ideas].sort((a,b)=>(b.created||'').localeCompare(a.created||''));
+ if(!Array.isArray(state.ideas)) state.ideas=[]; const list=state.ideas.filter(i=>i&&typeof i==='object').sort((a,b)=>(b.created||'').localeCompare(a.created||''));
  root.innerHTML=`<section class="hero"><div class="eyebrow">Capture now. Decide later.</div><h1>Your Idea Garden</h1><p>A quiet place to catch ideas before they disappear. No scoring, deadlines or pressure to act on them.</p></section>
  <section class="card"><div class="cardhead"><h2><span class="idea-mark">✧</span>Capture an idea</h2></div><div class="field"><label>Idea</label><input id="ideaTitle" placeholder="A few words to remember it"></div><div class="field"><label>Optional note</label><textarea id="ideaNote" placeholder="Context, a question, or where it came from" rows="2"></textarea></div>${button('Save idea','addIdea()')}</section>
  <section class="card"><div class="cardhead"><h2>Collected ideas</h2><span class="muted">${list.length} saved</span></div>${list.length?list.map(i=>`<div class="idea-row"><div class="idea-mark">✧</div><div style="flex:1"><strong>${esc(i.title)}</strong><div class="muted small">${esc(new Date(i.created).toLocaleDateString())}</div>${i.note?`<p>${esc(i.note)}</p>`:''}</div><div class="actions">${button('Edit',`editIdea('${i.id}')`,'btn secondary smallbtn')}${button('Delete',`deleteIdea('${i.id}')`,'btn ghost smallbtn')}</div></div>`).join(''):'<p class="muted">No ideas captured yet. Add one whenever something occurs to you.</p>'}</section>`;
