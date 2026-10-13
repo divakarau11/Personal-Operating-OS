@@ -87,6 +87,14 @@ const defaultHabitDescriptions=['Flexible duration; consistency without guilt','
 const today=()=>new Date().toLocaleDateString('en-CA');
 function fresh(){return {vision:defaultVision,habits,goals:seedGoals,activePrimary:null,activeSecondary:null,projects:[],daily:{},reflections:{},reviews:{weekly:{},monthly:{},quarterly:{}},ideas:[],settings:{capacity:2,lastBackup:null},habitDescriptions:[...defaultHabitDescriptions]}}
 let state;try{state=JSON.parse(localStorage.getItem(KEY))||fresh()}catch{state=fresh()}
+if(!Array.isArray(state.habitDescriptions)) state.habitDescriptions=[...defaultHabitDescriptions];
+if(!Array.isArray(state.ideas)) state.ideas=[];
+if(!Array.isArray(state.habits)) state.habits=[...habits];
+if(!Array.isArray(state.goals)) state.goals=[...seedGoals];
+if(!state.daily) state.daily={};
+if(!state.reflections) state.reflections={};
+if(!state.reviews) state.reviews={weekly:{},monthly:{},quarterly:{}};
+if(!state.settings) state.settings={capacity:2,lastBackup:null};
 function persist(){localStorage.setItem(KEY,JSON.stringify(state));}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function id(){return Math.random().toString(36).slice(2,10)}
